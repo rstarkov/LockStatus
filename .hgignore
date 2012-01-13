@@ -1,0 +1,11 @@
+syntax: glob
+
+__*
+builds
+*.ncb
+*.suo
+*.sdf
+*.aps
+*.opensdf
+*.vcxproj.user
+ipch # they just can't stop littering the source directory with new junk, can they...
