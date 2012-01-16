@@ -122,7 +122,7 @@ VOID CALLBACK RefreshStates(HWND hwnd, UINT uMsg, UINT_PTR idEvent, DWORD dwTime
         keyScrollLock->Refresh();
 }
 
-int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nCmdShow)
+void WINAPI Entry()
 {
     KeyIconMode capsMode = KeyIconModes::OnlyOn;
     KeyIconMode numMode = KeyIconModes::Never;
@@ -131,42 +131,43 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     // Poor man's command line parsing: must be three characters long, one for each key (caps/num/scroll).
     // Each character may be a '0' (only show if off), a '1' (only show if on), an 'N' (never show); otherwise the
     // icon is always shown for that key.
-    if (strlen(lpCmdLine) == 3)
+    LPTSTR cmdLine = GetCommandLine();
+    if (wcslen(cmdLine) == 3)
     {
-        switch (lpCmdLine[0])
+        switch (cmdLine[0])
         {
-            case '0': capsMode = KeyIconModes::OnlyOff; break;
-            case '1': capsMode = KeyIconModes::OnlyOn; break;
-            case 'n': case 'N': capsMode = KeyIconModes::Never; break;
+            case L'0': capsMode = KeyIconModes::OnlyOff; break;
+            case L'1': capsMode = KeyIconModes::OnlyOn; break;
+            case L'n': case L'N': capsMode = KeyIconModes::Never; break;
             default: capsMode = KeyIconModes::Always; break;
         }
-        switch (lpCmdLine[1])
+        switch (cmdLine[1])
         {
-            case '0': numMode = KeyIconModes::OnlyOff; break;
-            case '1': numMode = KeyIconModes::OnlyOn; break;
-            case 'n': case 'N': numMode = KeyIconModes::Never; break;
+            case L'0': numMode = KeyIconModes::OnlyOff; break;
+            case L'1': numMode = KeyIconModes::OnlyOn; break;
+            case L'n': case L'N': numMode = KeyIconModes::Never; break;
             default: numMode = KeyIconModes::Always; break;
         }
-        switch (lpCmdLine[2])
+        switch (cmdLine[2])
         {
-            case '0': scrollMode = KeyIconModes::OnlyOff; break;
-            case '1': scrollMode = KeyIconModes::OnlyOn; break;
-            case 'n': case 'N': scrollMode = KeyIconModes::Never; break;
+            case L'0': scrollMode = KeyIconModes::OnlyOff; break;
+            case L'1': scrollMode = KeyIconModes::OnlyOn; break;
+            case L'n': case L'N': scrollMode = KeyIconModes::Never; break;
             default: scrollMode = KeyIconModes::Always; break;
         }
     }
 
     // Grab a message-only window, which is required by pretty much every piece of functionality this program has
-    hInstance = hInst;
+    hInstance = GetModuleHandle(NULL);
     hMessageWnd = CreateWindow(L"Message", L"Dummy", 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, hInstance, NULL);
 
     // Initialize the key descriptions and show the icons
-    keyCapsLock = capsMode == KeyIconModes::Never ? NULL
-                            : new KeyInfo(VK_CAPITAL, IDI_CAPS_ON, IDI_CAPS_OFF, capsMode, L"Caps Lock status");
-    keyNumLock = numMode == KeyIconModes::Never ? NULL
-                            : new KeyInfo(VK_NUMLOCK, IDI_NUM_ON, IDI_NUM_OFF, numMode, L"Num Lock status");
-    keyScrollLock = scrollMode == KeyIconModes::Never ? NULL
-                            : new KeyInfo(VK_SCROLL, IDI_SCROLL_ON, IDI_SCROLL_OFF, scrollMode, L"Scroll Lock status");
+    KeyInfo capsInfo(VK_CAPITAL, IDI_CAPS_ON, IDI_CAPS_OFF, capsMode, L"Caps Lock status");
+    KeyInfo numInfo(VK_NUMLOCK, IDI_NUM_ON, IDI_NUM_OFF, numMode, L"Num Lock status");
+    KeyInfo scrollInfo(VK_SCROLL, IDI_SCROLL_ON, IDI_SCROLL_OFF, scrollMode, L"Scroll Lock status");
+    keyCapsLock = capsMode == KeyIconModes::Never ? NULL : &capsInfo;
+    keyNumLock = numMode == KeyIconModes::Never ? NULL : &numInfo;
+    keyScrollLock = scrollMode == KeyIconModes::Never ? NULL : &scrollInfo;
 
     // Refresh the icons whenever certain keys are pressed
     SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardHook, hInstance, 0);
@@ -190,5 +191,5 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst, LPSTR lpCmdLine, int nC
     if (keyScrollLock != NULL)
         keyScrollLock->DeleteFromTray();
 
-	return 0;
+    ExitProcess(0);
 }
