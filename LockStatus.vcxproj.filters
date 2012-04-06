@@ -4,10 +4,12 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="sha1.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LockStatus.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="sha1.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="LockStatus.rc" />

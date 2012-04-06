@@ -29,7 +29,7 @@ class KeyInfo
     public:
         KeyInfo() { }
 
-        KeyInfo(int virtualKey, int onIconId, int offIconId, KeyIconMode mode, LPCWSTR tooltip):
+        KeyInfo(int virtualKey, int onIconId, int offIconId, KeyIconMode mode, LPCWSTR tooltip, GUID guid):
                 _trayIcon(),
                 _virtualKey(virtualKey),
                 _state(false),
@@ -43,8 +43,8 @@ class KeyInfo
             Shell_NotifyIcon(NIM_SETVERSION, &_trayIcon);
 
             _trayIcon.hWnd = hMessageWnd;
-            _trayIcon.uFlags = NIF_ICON | NIF_TIP | NIF_STATE;
-            _trayIcon.uID = onIconId;
+            _trayIcon.uFlags = NIF_ICON | NIF_TIP | NIF_STATE | NIF_GUID;
+            _trayIcon.guidItem = guid;
             StringCchCopy(_trayIcon.szTip, ARRAYSIZE(_trayIcon.szTip), tooltip);
             if (mode == KeyIconModes::OnlyOn || mode == KeyIconModes::Always)
                 _onIcon = LoadIcon(hInstance, MAKEINTRESOURCE(onIconId));
@@ -161,10 +161,36 @@ void WINAPI Entry()
     hInstance = GetModuleHandle(NULL);
     hMessageWnd = CreateWindow(L"Message", L"Dummy", 0, 0, 0, 0, 0, HWND_MESSAGE, NULL, hInstance, NULL);
 
+    // Generate a hash of the application path, so we can make tray icon GUIDs that Windows is happy with
+    // http://stackoverflow.com/questions/7432319
+    WCHAR appPath[256];
+    GetModuleFileName(hInstance, appPath, sizeof(appPath) / sizeof(WCHAR));
+    size_t appPathLength;
+    StringCbLength(appPath, sizeof(appPath), &appPathLength);
+    SHA1_CTX context;
+    uint32 appPathHash[5]; // = 20 bytes
+    SHA1_Init(&context);
+    SHA1_Update(&context, (unsigned char*) appPath, appPathLength);
+    SHA1_Final(&context, (unsigned char*) appPathHash);
+
+    // Generate a GUID for each icon
+    GUID capsGuid = {0x6ee6304d, 0xefb7, 0x4e51, {0xb8, 0x1f, 0x84, 0xac, 0xf6, 0x01, 0x93, 0xf4}};
+    GUID numGuid = {0x202b126f, 0x2255, 0x421f, {0x96, 0xd0, 0xb1, 0x3f, 0xee, 0xbb, 0x13, 0x93}};
+    GUID scrollGuid = {0xbb7ec587, 0x2c22, 0x48b6, {0x89, 0x50, 0x57, 0xf7, 0xa4, 0x51, 0x51, 0x30}};
+    uint32 *guidsA[] = { NULL, (uint32*) &capsGuid, (uint32*) &numGuid, (uint32*) &scrollGuid, NULL };
+    uint32 **guids = guidsA;
+    while (*++guids)
+    {
+        (*guids)[0] ^= appPathHash[0];
+        (*guids)[1] ^= appPathHash[1];
+        (*guids)[2] ^= appPathHash[2];
+        (*guids)[3] ^= appPathHash[3];
+    }
+
     // Initialize the key descriptions and show the icons
-    KeyInfo capsInfo(VK_CAPITAL, IDI_CAPS_ON, IDI_CAPS_OFF, capsMode, L"Caps Lock status");
-    KeyInfo numInfo(VK_NUMLOCK, IDI_NUM_ON, IDI_NUM_OFF, numMode, L"Num Lock status");
-    KeyInfo scrollInfo(VK_SCROLL, IDI_SCROLL_ON, IDI_SCROLL_OFF, scrollMode, L"Scroll Lock status");
+    KeyInfo capsInfo(VK_CAPITAL, IDI_CAPS_ON, IDI_CAPS_OFF, capsMode, L"Caps Lock status", capsGuid);
+    KeyInfo numInfo(VK_NUMLOCK, IDI_NUM_ON, IDI_NUM_OFF, numMode, L"Num Lock status", numGuid);
+    KeyInfo scrollInfo(VK_SCROLL, IDI_SCROLL_ON, IDI_SCROLL_OFF, scrollMode, L"Scroll Lock status", scrollGuid);
     keyCapsLock = capsMode == KeyIconModes::Never ? NULL : &capsInfo;
     keyNumLock = numMode == KeyIconModes::Never ? NULL : &numInfo;
     keyScrollLock = scrollMode == KeyIconModes::Never ? NULL : &scrollInfo;
