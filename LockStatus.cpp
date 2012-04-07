@@ -45,6 +45,7 @@ class KeyInfo
             _trayIcon.hWnd = hMessageWnd;
             _trayIcon.uFlags = NIF_ICON | NIF_TIP | NIF_STATE | NIF_GUID;
             _trayIcon.guidItem = guid;
+            _trayIcon.uID = onIconId;
             StringCchCopy(_trayIcon.szTip, ARRAYSIZE(_trayIcon.szTip), tooltip);
             if (mode == KeyIconModes::OnlyOn || mode == KeyIconModes::Always)
                 _onIcon = LoadIcon(hInstance, MAKEINTRESOURCE(onIconId));
