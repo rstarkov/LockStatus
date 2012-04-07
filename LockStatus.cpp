@@ -132,23 +132,25 @@ void WINAPI Entry()
     // Each character may be a '0' (only show if off), a '1' (only show if on), an 'N' (never show); otherwise the
     // icon is always shown for that key.
     LPTSTR cmdLine = GetCommandLine();
-    if (wcslen(cmdLine) == 3)
+    size_t cmdLen = wcslen(cmdLine);
+    if (cmdLen >= 3)
     {
-        switch (cmdLine[0])
+        cmdLine += cmdLen; // hacky...
+        switch (cmdLine[-3])
         {
             case L'0': capsMode = KeyIconModes::OnlyOff; break;
             case L'1': capsMode = KeyIconModes::OnlyOn; break;
             case L'n': case L'N': capsMode = KeyIconModes::Never; break;
             default: capsMode = KeyIconModes::Always; break;
         }
-        switch (cmdLine[1])
+        switch (cmdLine[-2])
         {
             case L'0': numMode = KeyIconModes::OnlyOff; break;
             case L'1': numMode = KeyIconModes::OnlyOn; break;
             case L'n': case L'N': numMode = KeyIconModes::Never; break;
             default: numMode = KeyIconModes::Always; break;
         }
-        switch (cmdLine[2])
+        switch (cmdLine[-1])
         {
             case L'0': scrollMode = KeyIconModes::OnlyOff; break;
             case L'1': scrollMode = KeyIconModes::OnlyOn; break;
