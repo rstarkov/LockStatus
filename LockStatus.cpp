@@ -133,7 +133,7 @@ void WINAPI Entry()
     // Each character may be a '0' (only show if off), a '1' (only show if on), an 'N' (never show); otherwise the
     // icon is always shown for that key.
     LPTSTR cmdLine = GetCommandLine();
-    size_t cmdLen = wcslen(cmdLine);
+    size_t cmdLen = lstrlenW(cmdLine);
     if (cmdLen >= 3)
     {
         cmdLine += cmdLen; // hacky...

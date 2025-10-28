@@ -1,0 +1,10 @@
+__*
+builds
+*.ncb
+*.suo
+*.sdf
+*.aps
+*.opensdf
+*.vcxproj.user
+ipch
+.vs
