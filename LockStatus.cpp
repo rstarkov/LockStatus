@@ -24,6 +24,7 @@ class KeyInfo
         NOTIFYICONDATA _trayIcon;
         int _virtualKey;
         bool _state; // true if the icon corresponds to the "ON" state, false for "OFF"
+        bool _isInTray; // true if the icon is currently added to the tray
         HICON _onIcon, _offIcon; // NULL if the user doesn't want an icon for this state
 
     public:
@@ -33,6 +34,7 @@ class KeyInfo
                 _trayIcon(),
                 _virtualKey(virtualKey),
                 _state(false),
+                _isInTray(false),
                 _onIcon(NULL), _offIcon(NULL)
         {
             if (mode == KeyIconModes::Never)
@@ -43,7 +45,7 @@ class KeyInfo
             Shell_NotifyIcon(NIM_SETVERSION, &_trayIcon);
 
             _trayIcon.hWnd = hMessageWnd;
-            _trayIcon.uFlags = NIF_ICON | NIF_TIP | NIF_STATE | NIF_GUID;
+            _trayIcon.uFlags = NIF_ICON | NIF_TIP | NIF_GUID;
             _trayIcon.guidItem = guid;
             _trayIcon.uID = onIconId;
             StringCchCopy(_trayIcon.szTip, ARRAYSIZE(_trayIcon.szTip), tooltip);
@@ -52,43 +54,51 @@ class KeyInfo
             if (mode == KeyIconModes::OnlyOff || mode == KeyIconModes::Always)
                 _offIcon = LoadIcon(hInstance, MAKEINTRESOURCE(offIconId));
 
-            refresh(true);
+            Refresh();
         }
 
         void Refresh()
-        {
-            refresh(false);
-        }
-
-        void DeleteFromTray()
-        {
-            Shell_NotifyIcon(NIM_DELETE, &_trayIcon);
-        }
-
-    private:
-        void refresh(bool first)
         {
             if (_onIcon == NULL && _offIcon == NULL)
                 return;
 
             bool on = (GetKeyState(_virtualKey) & 1) != 0;
-            if (on == _state && !first)
-                return; // didn't change
+            HICON icon = on ? _onIcon : _offIcon;
+            bool shouldBeVisible = (icon != NULL);
+
+            // Skip if nothing changed
+            if (on == _state && shouldBeVisible == _isInTray)
+                return;
             _state = on;
 
-            HICON icon = on ? _onIcon : _offIcon;
-            if (icon == NULL)
+            if (shouldBeVisible && !_isInTray)
             {
-                _trayIcon.dwState = NIS_HIDDEN;
-                _trayIcon.dwStateMask = NIS_HIDDEN;
-            }
-            else
-            {
-                _trayIcon.dwState = 0;
-                _trayIcon.dwStateMask = NIS_HIDDEN;
+                // Add the icon to the tray
                 _trayIcon.hIcon = icon;
+                Shell_NotifyIcon(NIM_ADD, &_trayIcon);
+                _isInTray = true;
             }
-            Shell_NotifyIcon(first ? NIM_ADD : NIM_MODIFY, &_trayIcon);
+            else if (shouldBeVisible && _isInTray)
+            {
+                // Update the existing icon
+                _trayIcon.hIcon = icon;
+                Shell_NotifyIcon(NIM_MODIFY, &_trayIcon);
+            }
+            else if (!shouldBeVisible && _isInTray)
+            {
+                // Remove the icon from the tray
+                Shell_NotifyIcon(NIM_DELETE, &_trayIcon);
+                _isInTray = false;
+            }
+        }
+
+        void DeleteFromTray()
+        {
+            if (_isInTray)
+            {
+                Shell_NotifyIcon(NIM_DELETE, &_trayIcon);
+                _isInTray = false;
+            }
         }
 };
 
