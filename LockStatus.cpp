@@ -28,8 +28,6 @@ class KeyInfo
         HICON _onIcon, _offIcon; // NULL if the user doesn't want an icon for this state
 
     public:
-        KeyInfo() { }
-
         KeyInfo(int virtualKey, int onIconId, int offIconId, KeyIconMode mode, LPCWSTR tooltip, GUID guid):
                 _trayIcon(),
                 _virtualKey(virtualKey),
@@ -139,29 +137,31 @@ void WINAPI Entry()
     KeyIconMode numMode = KeyIconModes::Never;
     KeyIconMode scrollMode = KeyIconModes::OnlyOn;
 
-    // Poor man's command line parsing: must be three characters long, one for each key (caps/num/scroll).
+    // Optional argument must be three characters long, one for each key (caps/num/scroll).
     // Each character may be a '0' (only show if off), a '1' (only show if on), an 'N' (never show); otherwise the
     // icon is always shown for that key.
-    LPTSTR cmdLine = GetCommandLine();
-    size_t cmdLen = lstrlenW(cmdLine);
-    if (cmdLen >= 3)
+    int argc;
+    LPWSTR *argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    if (argc >= 2 && lstrlenW(argv[1]) >= 3)
     {
-        cmdLine += cmdLen; // hacky...
-        switch (cmdLine[-3])
+        LPTSTR arg = argv[1];
+        size_t argLen = lstrlenW(arg);
+        arg += argLen; // point to end of argument
+        switch (arg[-3])
         {
             case L'0': capsMode = KeyIconModes::OnlyOff; break;
             case L'1': capsMode = KeyIconModes::OnlyOn; break;
             case L'n': case L'N': capsMode = KeyIconModes::Never; break;
             default: capsMode = KeyIconModes::Always; break;
         }
-        switch (cmdLine[-2])
+        switch (arg[-2])
         {
             case L'0': numMode = KeyIconModes::OnlyOff; break;
             case L'1': numMode = KeyIconModes::OnlyOn; break;
             case L'n': case L'N': numMode = KeyIconModes::Never; break;
             default: numMode = KeyIconModes::Always; break;
         }
-        switch (cmdLine[-1])
+        switch (arg[-1])
         {
             case L'0': scrollMode = KeyIconModes::OnlyOff; break;
             case L'1': scrollMode = KeyIconModes::OnlyOn; break;
@@ -169,6 +169,8 @@ void WINAPI Entry()
             default: scrollMode = KeyIconModes::Always; break;
         }
     }
+    if (argv != NULL)
+        LocalFree(argv);
 
     // Grab a message-only window, which is required by pretty much every piece of functionality this program has
     hInstance = GetModuleHandle(NULL);
